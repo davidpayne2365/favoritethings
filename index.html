@@ -4,53 +4,66 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Favorite Things</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Press+Start+2P&display=swap">
 <style>
-  :root { color-scheme: light dark; --bg:#faf7f2; --card:#fff; --fg:#201a17; --muted:#7a6f68; --line:#e4dcd2; --accent:#c8442d; --accent-fg:#fff; --danger:#b3261e; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#17130f; --card:#221c17; --fg:#f3ece4; --muted:#a39688; --line:#372f27; --accent:#ee7a62; --accent-fg:#1a0d08; --danger:#ff8a80; } }
+  /* Valley farm look: parchment panels, wood frames, grass-green buttons, pixel scene in the header */
+  :root { color-scheme: light dark; --bg:#e9cf94; --card:#f8e8bf; --fg:#4a2e17; --muted:#8a6a44; --wood:#7a4a22; --wood-lt:#c98d4a; --shade:#4b2c12; --accent:#5aa83c; --accent-dk:#2f6b24; --accent-fg:#fff; --danger:#a8321f; --field:#fff6dc; --sky1:#8fd3f4; --sky2:#bfe8f7; --hill:#6fb94a; --hill2:#4f9a3a; --sun:#ffd84a; --cloud:#ffffff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#1d2638; --card:#3a2a1f; --fg:#f1dfb8; --muted:#bfa27a; --wood:#2a1a0e; --wood-lt:#8a5a2e; --shade:#0e0905; --accent:#6dbb4a; --accent-dk:#2d6a26; --accent-fg:#10210b; --danger:#ff8a70; --field:#2b1e15; --sky1:#2c3e78; --sky2:#c3809a; --hill:#2f6a3a; --hill2:#245430; --sun:#f7e7a0; --cloud:#e3c6d6; } }
   * { box-sizing: border-box; }
   [hidden] { display:none !important; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; background:var(--bg); border-bottom:1px solid var(--line); }
-  h1 { margin:0; font:700 22px/1 Georgia, "Times New Roman", serif; letter-spacing:-.01em; }
-  .who { display:flex; align-items:center; gap:10px; font-size:14px; color:var(--muted); min-width:0; }
-  .who b { color:var(--fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:30vw; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:400 17px/1.4 "Pixelify Sans", "Courier New", monospace; }
+  header { position:sticky; top:0; z-index:5; background:var(--wood); border-bottom:4px solid var(--shade); box-shadow:0 4px 0 var(--wood-lt) inset; }
+  #scene { display:block; width:100%; height:96px; image-rendering:pixelated; border-bottom:4px solid var(--shade); }
+  .bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px; }
+  h1 { margin:0; font:400 16px/1.3 "Press Start 2P", monospace; color:#ffe9b0; text-shadow:2px 2px 0 var(--shade); }
+  .who { display:flex; align-items:center; gap:10px; font-size:15px; color:#ffe9b0; min-width:0; }
+  .who b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:30vw; }
   main { max-width:1000px; margin:0 auto; padding:16px; }
-  button { font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--card); color:var(--fg); border-radius:8px; padding:8px 14px; }
-  button.primary { background:var(--accent); color:var(--accent-fg); border-color:transparent; font-weight:600; }
-  button:disabled { opacity:.5; cursor:default; }
-  input[type=text], input[type=email], input[type=password], textarea { width:100%; font:inherit; color:var(--fg); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; }
-  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  #post { display:grid; gap:10px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:20px; }
-  #post h2 { margin:0; font-size:16px; }
-  #preview { max-width:100%; max-height:260px; border-radius:8px; object-fit:contain; justify-self:start; }
-  #signedout { text-align:center; color:var(--muted); padding:18px; border:1px dashed var(--line); border-radius:12px; margin-bottom:20px; }
-  #feed { columns:240px; column-gap:14px; }
-  .item { break-inside:avoid; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:0 0 14px; }
-  .item img { display:block; width:100%; height:auto; }
+  button { font:inherit; font-weight:600; cursor:pointer; color:var(--fg); background:var(--wood-lt); border:3px solid var(--shade); border-radius:0; padding:6px 12px; box-shadow:inset 0 3px 0 rgba(255,255,255,.35), 0 3px 0 var(--shade); }
+  button:active { transform:translateY(3px); box-shadow:inset 0 3px 0 rgba(255,255,255,.35); }
+  button.primary { background:var(--accent); color:var(--accent-fg); }
+  button:disabled { opacity:.55; cursor:default; }
+  input[type=text], input[type=email], input[type=password], textarea { width:100%; font:inherit; color:var(--fg); background:var(--field); border:3px solid var(--wood); border-radius:0; padding:9px; box-shadow:inset 3px 3px 0 rgba(0,0,0,.15); }
+  input[type=file] { font:inherit; max-width:100%; }
+  :focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .panel { background:var(--card); border:4px solid var(--wood); box-shadow:0 0 0 3px var(--wood-lt) inset, 0 5px 0 var(--shade); border-radius:0; }
+  #post { display:grid; gap:10px; padding:16px; margin-bottom:22px; }
+  #post h2 { margin:0; font:400 13px/1.4 "Press Start 2P", monospace; }
+  #preview { max-width:100%; max-height:260px; object-fit:contain; justify-self:start; border:3px solid var(--wood); image-rendering:auto; }
+  #signedout { text-align:center; padding:18px; margin-bottom:22px; }
+  #feed { columns:240px; column-gap:16px; }
+  .item { break-inside:avoid; margin:0 0 18px; overflow:hidden; }
+  .item img { display:block; width:100%; height:auto; border-bottom:4px solid var(--wood); }
   .item .body { padding:10px 12px 12px; }
-  .item h3 { margin:0; font-size:17px; overflow-wrap:anywhere; }
+  .item h3 { margin:0; font-size:19px; overflow-wrap:anywhere; }
   .item p { margin:4px 0 0; overflow-wrap:anywhere; }
-  .meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-size:13px; color:var(--muted); }
-  .del { padding:2px 8px; font-size:13px; color:var(--danger); }
+  .meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-size:14px; color:var(--muted); }
+  .del { padding:1px 8px; font-size:14px; color:var(--danger); box-shadow:0 2px 0 var(--shade); }
   #empty { text-align:center; color:var(--muted); padding:40px 0; }
-  #msg { min-height:1.4em; font-size:14px; color:var(--muted); }
+  #msg { min-height:1.4em; font-size:15px; color:var(--muted); }
   #msg.err { color:var(--danger); }
-  dialog { border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--fg); padding:20px; width:min(360px, calc(100vw - 32px)); }
-  dialog::backdrop { background:rgba(0,0,0,.5); }
+  dialog { color:var(--fg); padding:20px; width:min(380px, calc(100vw - 32px)); background:var(--card); border:4px solid var(--wood); box-shadow:0 0 0 3px var(--wood-lt) inset, 0 5px 0 var(--shade); border-radius:0; }
+  dialog::backdrop { background:rgba(20,10,0,.6); }
   dialog form { display:grid; gap:10px; }
-  dialog h2 { margin:0; font-size:18px; }
-  .row { display:flex; gap:8px; justify-content:flex-end; }
-  .link { background:none; border:none; padding:0; color:var(--accent); text-decoration:underline; justify-self:start; }
+  dialog h2 { margin:0; font:400 14px/1.4 "Press Start 2P", monospace; }
+  .row { display:flex; gap:8px; justify-content:flex-end; align-items:center; }
+  .link { background:none; border:none; box-shadow:none; padding:0; color:var(--accent-dk); text-decoration:underline; justify-self:start; }
+  .link:active { transform:none; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .link { color:var(--accent); } }
+  @media (max-width:480px) { h1 { font-size:12px; } #scene { height:72px; } }
 </style>
 </head>
 <body>
 <header>
-  <h1>Favorite Things</h1>
-  <div class="who" id="who"><button id="openAuth" class="primary">Log in / Sign up</button></div>
+  <canvas id="scene" width="240" height="36" aria-hidden="true"></canvas>
+  <div class="bar">
+    <h1>Favorite Things</h1>
+    <div class="who" id="who"><button id="openAuth" class="primary">Log in / Sign up</button></div>
+  </div>
 </header>
 
 <main>
-  <form id="post" hidden>
+  <form id="post" class="panel" hidden>
     <h2>Post one of your favorite things</h2>
     <input id="title" type="text" maxlength="80" placeholder="What is it? (e.g. Blue Ridge sunsets)" required>
     <textarea id="note" rows="2" maxlength="300" placeholder="Why do you love it? (optional)"></textarea>
@@ -58,7 +71,7 @@
     <img id="preview" alt="" hidden>
     <div class="row"><span id="msg" style="margin-right:auto"></span><button class="primary" id="submitPost">Post</button></div>
   </form>
-  <div id="signedout">Log in or sign up to post your own favorite things.</div>
+  <div id="signedout" class="panel">Log in or sign up to post your own favorite things.</div>
 
   <div id="feed"></div>
   <div id="empty" hidden>Nothing here yet. Be the first to post.</div>
@@ -99,6 +112,50 @@ let user = null;
 let signup = false;
 let imageData = null;
 let posts = [];
+
+
+// ---------- pixel farm scene in the header ----------
+function drawScene() {
+  const c = $("scene"), g = c.getContext("2d");
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const R = (col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+  const W = c.width, H = c.height;
+  const bands = 6;
+  for (let i = 0; i < bands; i++) {
+    R(i % 2 ? css("--sky2") : css("--sky1"), 0, Math.floor(i * 24 / bands), W, Math.ceil(24 / bands));
+  }
+  R(css("--sky1"), 0, 0, W, 4);
+  // sun
+  R(css("--sun"), 196, 4, 8, 8); R(css("--sun"), 194, 6, 12, 4); R(css("--sun"), 198, 2, 4, 12);
+  // clouds
+  for (const [x, y] of [[30, 6], [110, 3], [150, 9]]) {
+    R(css("--cloud"), x, y + 2, 16, 4); R(css("--cloud"), x + 3, y, 10, 6); R(css("--cloud"), x + 6, y - 1, 5, 2);
+  }
+  // hills
+  R(css("--hill2"), 0, 18, W, 18);
+  for (let x = 0; x < W; x += 2) { const h = Math.round(3 + 3 * Math.sin(x / 17) + 2 * Math.sin(x / 7)); R(css("--hill2"), x, 18 - h + 2, 2, h); }
+  R(css("--hill"), 0, 24, W, 12);
+  for (let x = 0; x < W; x += 2) { const h = Math.round(2 + 2 * Math.sin(x / 11 + 2)); R(css("--hill"), x, 24 - h, 2, h + 1); }
+  // house
+  R("#8a5a2e", 20, 14, 28, 14); R("#6e4521", 20, 26, 28, 2);
+  R("#b83a2a", 17, 10, 34, 4); R("#b83a2a", 20, 7, 28, 3); R("#b83a2a", 24, 5, 20, 2); R("#8e2a1e", 17, 13, 34, 1);
+  R("#ffe9a8", 25, 17, 6, 6); R("#6e4521", 27, 17, 2, 6); R("#6e4521", 25, 19, 6, 2);
+  R("#5b3a1e", 38, 18, 6, 10); R("#d6a24a", 42, 23, 1, 1);
+  R("#7a7a7a", 42, 2, 4, 6); R("#555", 41, 2, 6, 1);
+  // trees
+  for (const x of [66, 176]) { R("#6b4220", x + 3, 20, 3, 9); R("#2f7a32", x, 10, 9, 6); R("#3f9a3c", x + 1, 6, 7, 6); R("#2f7a32", x + 2, 3, 5, 4); R("#58b852", x + 3, 7, 2, 2); }
+  // fence
+  for (let x = 74; x < 140; x += 8) R("#c98d4a", x, 25, 2, 6);
+  R("#e0a85c", 74, 26, 66, 1); R("#e0a85c", 74, 29, 66, 1);
+  // crop rows
+  for (let row = 0; row < 2; row++) {
+    const y = 30 + row * 3;
+    R("#7a4a22", 0, y, W, 2);
+    for (let x = row * 3; x < W; x += 6) { R("#3f9a3c", x, y - 3, 1, 3); R("#7ad06a", x - 1, y - 4, 3, 1); if ((x + row) % 12 === 0) R("#ff8a3c", x, y - 5, 2, 2); }
+  }
+}
+drawScene();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawScene);
 
 // ---------- auth ----------
 function authError(e) {
@@ -237,7 +294,7 @@ function renderFeed() {
   $("empty").hidden = posts.length > 0;
   for (const p of posts) {
     const item = document.createElement("article");
-    item.className = "item";
+    item.className = "item panel";
     const img = document.createElement("img");
     img.src = p.image;
     img.alt = p.title;
