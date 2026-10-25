@@ -41,6 +41,10 @@
   .person small { color:var(--muted); font-size:14px; }
   .profname { margin:0; font:400 14px/1.4 "Press Start 2P", monospace; overflow-wrap:anywhere; }
   .by { font:inherit; font-size:14px; }
+  .passrow { display:flex; gap:8px; }
+  .passrow input { flex:1; min-width:0; }
+  #authMsg.ok { color:var(--accent-dk); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #authMsg.ok { color:var(--accent); } }
   .item { break-inside:avoid; margin:0 0 18px; overflow:hidden; }
   .item img { display:block; width:100%; height:auto; border-bottom:4px solid var(--wood); }
   .item .body { padding:10px 12px 12px; }
@@ -113,19 +117,23 @@
     <h2 id="authTitle">Log in</h2>
     <input id="name" type="text" maxlength="30" placeholder="Display name" autocomplete="nickname" hidden>
     <input id="email" type="email" placeholder="Email" autocomplete="email" required>
-    <input id="pass" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" required minlength="6">
-    <div id="authMsg" class="err" style="font-size:14px"></div>
+    <div class="passrow">
+      <input id="pass" type="password" placeholder="Password (6+ characters)" autocomplete="current-password" required minlength="6">
+      <button type="button" id="showPass" aria-pressed="false">Show</button>
+    </div>
+    <div id="authMsg" class="err" style="font-size:14px" role="status"></div>
     <div class="row">
       <button type="button" id="cancelAuth">Cancel</button>
       <button class="primary" id="authGo">Log in</button>
     </div>
+    <button type="button" class="link" id="forgot">Forgot password?</button>
     <button type="button" class="link" id="toggleAuth">New here? Create an account</button>
   </form>
 </dialog>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, push, set, remove, onValue, query, limitToLast, orderByChild, equalTo, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const app = initializeApp({
@@ -202,7 +210,7 @@ function authError(e) {
   if (c.includes("email-already-in-use")) return "That email already has an account. Try logging in.";
   if (c.includes("weak-password")) return "Password needs at least 6 characters.";
   if (c.includes("invalid-email")) return "That email doesn't look right.";
-  if (c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found")) return "Wrong email or password.";
+  if (c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found")) return "Wrong email or password. Not sure? Tap Forgot password.";
   if (c.includes("too-many-requests")) return "Too many tries. Wait a minute and try again.";
   return "Couldn't sign in (" + (c || e.message) + ")";
 }
@@ -215,19 +223,53 @@ function setMode(isSignup) {
   $("name").required = isSignup;
   $("pass").autocomplete = isSignup ? "new-password" : "current-password";
   $("toggleAuth").textContent = isSignup ? "Have an account? Log in" : "New here? Create an account";
-  $("authMsg").textContent = "";
+  $("forgot").hidden = isSignup;
+  authSay("");
 }
 
-$("openAuth").addEventListener("click", () => { setMode(false); $("authDlg").showModal(); });
+function authSay(text, ok) { const m = $("authMsg"); m.textContent = text; m.className = ok ? "ok" : "err"; }
+
+let lastEmail = "";
+try { lastEmail = localStorage.getItem("ft-email") || ""; } catch { /* ignore */ }
+
+$("openAuth").addEventListener("click", () => {
+  setMode(false);
+  if (lastEmail && !$("email").value) $("email").value = lastEmail;
+  $("authDlg").showModal();
+  ($("email").value ? $("pass") : $("email")).focus();
+});
+
+$("showPass").addEventListener("click", () => {
+  const show = $("pass").type === "password";
+  $("pass").type = show ? "text" : "password";
+  $("showPass").textContent = show ? "Hide" : "Show";
+  $("showPass").setAttribute("aria-pressed", String(show));
+});
+
+$("forgot").addEventListener("click", async () => {
+  const email = $("email").value.trim();
+  if (!email) { authSay("Type your email above first, then tap Forgot password."); $("email").focus(); return; }
+  $("forgot").disabled = true;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    authSay("Reset email sent to " + email + ". Check your inbox and spam folder, tap the link, pick a new password, then log in here.", true);
+  } catch (err) {
+    const c = err.code || "";
+    authSay(c.includes("invalid-email") ? "That email doesn't look right." : c.includes("too-many-requests") ? "Too many tries. Wait a minute and try again." : "Couldn't send the reset email (" + (c || err.message) + ")");
+  } finally {
+    $("forgot").disabled = false;
+  }
+});
 $("cancelAuth").addEventListener("click", () => $("authDlg").close());
 $("toggleAuth").addEventListener("click", () => setMode(!signup));
 
 $("authForm").addEventListener("submit", async e => {
   e.preventDefault();
   $("authGo").disabled = true;
-  $("authMsg").textContent = "";
+  authSay("");
   try {
     const email = $("email").value.trim(), pass = $("pass").value;
+    try { localStorage.setItem("ft-email", email); lastEmail = email; } catch { /* ignore */ }
     if (signup) {
       const cred = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(cred.user, { displayName: $("name").value.trim().slice(0, 30) });
@@ -239,8 +281,14 @@ $("authForm").addEventListener("submit", async e => {
     }
     $("authDlg").close();
     $("authForm").reset();
+    $("pass").type = "password"; $("showPass").textContent = "Show";
   } catch (err) {
-    $("authMsg").textContent = authError(err);
+    if ((err.code || "").includes("email-already-in-use")) {
+      setMode(false);
+      authSay("That email already has an account. Log in below, or tap Forgot password.");
+    } else {
+      authSay(authError(err));
+    }
   } finally {
     $("authGo").disabled = false;
   }
