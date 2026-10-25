@@ -98,11 +98,12 @@ import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWith
 import { getDatabase, ref, push, remove, onValue, query, limitToLast, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const app = initializeApp({
-  apiKey: "AIzaSyDRV3K3DQ_LEyvZB-w77BmpD5QDHDSdNWA",
-  authDomain: "mtgapp-aacbd.firebaseapp.com",
-  databaseURL: "https://mtgapp-aacbd-default-rtdb.firebaseio.com",
-  projectId: "mtgapp-aacbd",
+  apiKey: "AIzaSyD2PDm2Jgco7ZZt90uyptESiL9vWpNhXWM",
+  authDomain: "allapps-74c50.firebaseapp.com",
+  databaseURL: "https://allapps-74c50-default-rtdb.firebaseio.com",
+  projectId: "allapps-74c50",
 });
+const POSTS = "apps/favoritethings/posts";
 const auth = getAuth(app);
 const db = getDatabase(app);
 const $ = id => document.getElementById(id);
@@ -267,7 +268,7 @@ $("post").addEventListener("submit", async e => {
   $("submitPost").disabled = true;
   say("Posting…");
   try {
-    await push(ref(db, "favorites"), {
+    await push(ref(db, POSTS), {
       uid: user.uid,
       author: (user.displayName || user.email.split("@")[0]).slice(0, 30),
       title: $("title").value.trim().slice(0, 80),
@@ -315,7 +316,7 @@ function renderFeed() {
       d.className = "del";
       d.textContent = "Delete";
       d.addEventListener("click", () => {
-        if (d.dataset.sure) { remove(ref(db, "favorites/" + p.id)); return; }
+        if (d.dataset.sure) { remove(ref(db, POSTS + "/" + p.id)); return; }
         d.dataset.sure = "1"; d.textContent = "Tap again to delete";
         setTimeout(() => { delete d.dataset.sure; d.textContent = "Delete"; }, 3000);
       });
@@ -327,7 +328,7 @@ function renderFeed() {
   }
 }
 
-onValue(query(ref(db, "favorites"), limitToLast(40)), snap => {
+onValue(query(ref(db, POSTS), limitToLast(40)), snap => {
   const list = [];
   snap.forEach(c => { const v = c.val(); if (v && v.image) list.push({ id: c.key, ...v }); });
   posts = list.reverse();
