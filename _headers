@@ -1,0 +1,9 @@
+/
+  Content-Type: text/html; charset=UTF-8
+/index.html
+  Content-Type: text/html; charset=UTF-8
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+/sw.js
+  Cache-Control: no-cache
+  Service-Worker-Allowed: /

@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Favorite Things</title>
+<meta name="theme-color" content="#7a4a22">
+<meta name="description" content="Share your favorite things with friends.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Favorites">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Press+Start+2P&display=swap">
 <style>
   /* Valley farm look: parchment panels, wood frames, grass-green buttons, pixel scene in the header */
@@ -31,7 +40,7 @@
   #post h2 { margin:0; font:400 13px/1.4 "Press Start 2P", monospace; }
   #preview { max-width:100%; max-height:260px; object-fit:contain; justify-self:start; border:3px solid var(--wood); image-rendering:auto; }
   #signedout { text-align:center; padding:18px; margin-bottom:22px; }
-  .feed { columns:240px; column-gap:16px; }
+  .feed { display:grid; gap:10px; }
   .tabs { display:flex; gap:8px; margin-bottom:16px; }
   .tabs button.on { background:var(--accent); color:var(--accent-fg); }
   .muted { color:var(--muted); text-align:center; padding:24px 0; }
@@ -45,11 +54,12 @@
   .passrow input { flex:1; min-width:0; }
   #authMsg.ok { color:var(--accent-dk); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #authMsg.ok { color:var(--accent); } }
-  .item { break-inside:avoid; margin:0 0 18px; overflow:hidden; }
-  .item img { display:block; width:100%; height:auto; border-bottom:4px solid var(--wood); }
-  .item .body { padding:10px 12px 12px; }
-  .item h3 { margin:0; font-size:19px; overflow-wrap:anywhere; }
-  .item p { margin:4px 0 0; overflow-wrap:anywhere; }
+  .prow { width:100%; text-align:left; display:flex; flex-direction:column; gap:2px; padding:12px 14px; font-size:19px; }
+  .prow small { color:var(--muted); font-size:14px; }
+  .ptitle { overflow-wrap:anywhere; }
+  #postDlg img { display:block; max-width:100%; max-height:60vh; margin:0 auto 12px; border:3px solid var(--wood); }
+  #postDlg h3 { margin:0; font-size:20px; overflow-wrap:anywhere; }
+  #postDlg p { margin:6px 0 0; overflow-wrap:anywhere; }
   .meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-size:14px; color:var(--muted); }
   .del { padding:1px 8px; font-size:14px; color:var(--danger); box-shadow:0 2px 0 var(--shade); }
   #empty { text-align:center; color:var(--muted); padding:40px 0; }
@@ -112,6 +122,14 @@
   </div>
 </main>
 
+<dialog id="postDlg">
+  <img id="postImg" alt="">
+  <h3 id="postTitle"></h3>
+  <p id="postNote"></p>
+  <div class="meta"><button type="button" class="link by" id="postBy"></button><span id="postDate"></span></div>
+  <div class="row" style="margin-top:12px"><button type="button" id="postDel" class="del" hidden>Delete</button><button type="button" class="primary" id="postClose">Close</button></div>
+</dialog>
+
 <dialog id="authDlg">
   <form id="authForm" method="dialog">
     <h2 id="authTitle">Log in</h2>
@@ -131,6 +149,9 @@
   </form>
 </dialog>
 
+<script>
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -388,45 +409,54 @@ function renderFeed() {
   renderProfile();
 }
 
+function when(ts) {
+  return typeof ts === "number" ? new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+}
+
+// A list of rows (title, author, date). Tap a row to see the picture.
 function renderPosts(feed, list) {
   feed.textContent = "";
   for (const p of list) {
-    const item = document.createElement("article");
-    item.className = "item panel";
-    const img = document.createElement("img");
-    img.src = p.image;
-    img.alt = p.title;
-    img.loading = "lazy";
-    const body = document.createElement("div");
-    body.className = "body";
-    const h = document.createElement("h3");
-    h.textContent = p.title;
-    body.appendChild(h);
-    if (p.note) { const n = document.createElement("p"); n.textContent = p.note; body.appendChild(n); }
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    const by = document.createElement("button");
-    by.type = "button";
-    by.className = "link by";
-    by.textContent = "by " + p.author;
-    by.addEventListener("click", () => openProfile(p.uid, p.author));
-    meta.appendChild(by);
-    if (user && user.uid === p.uid) {
-      const d = document.createElement("button");
-      d.className = "del";
-      d.textContent = "Delete";
-      d.addEventListener("click", () => {
-        if (d.dataset.sure) { remove(ref(db, POSTS + "/" + p.id)); return; }
-        d.dataset.sure = "1"; d.textContent = "Tap again to delete";
-        setTimeout(() => { delete d.dataset.sure; d.textContent = "Delete"; }, 3000);
-      });
-      meta.appendChild(d);
-    }
-    body.appendChild(meta);
-    item.append(img, body);
-    feed.appendChild(item);
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "prow panel";
+    const t = document.createElement("span");
+    t.className = "ptitle";
+    t.textContent = p.title;
+    const m = document.createElement("small");
+    m.textContent = p.author + (when(p.ts) ? " · " + when(p.ts) : "");
+    row.append(t, m);
+    row.addEventListener("click", () => openPost(p));
+    feed.appendChild(row);
   }
 }
+
+let shown = null;
+function openPost(p) {
+  shown = p;
+  $("postImg").src = p.image;
+  $("postImg").alt = p.title;
+  $("postTitle").textContent = p.title;
+  $("postNote").textContent = p.note || "";
+  $("postNote").hidden = !p.note;
+  $("postBy").textContent = "by " + p.author;
+  $("postDate").textContent = when(p.ts);
+  const d = $("postDel");
+  d.hidden = !(user && user.uid === p.uid);
+  d.textContent = "Delete";
+  delete d.dataset.sure;
+  $("postDlg").showModal();
+}
+
+$("postClose").addEventListener("click", () => $("postDlg").close());
+$("postBy").addEventListener("click", () => { if (!shown) return; $("postDlg").close(); openProfile(shown.uid, shown.author); });
+$("postDel").addEventListener("click", e => {
+  const d = e.currentTarget;
+  if (!shown) return;
+  if (!d.dataset.sure) { d.dataset.sure = "1"; d.textContent = "Tap again to delete"; return; }
+  remove(ref(db, POSTS + "/" + shown.id));
+  $("postDlg").close();
+});
 
 // ---------- people and profiles ----------
 function showTab(t) {
