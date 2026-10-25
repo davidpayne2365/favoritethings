@@ -124,6 +124,7 @@
 
 <dialog id="postDlg">
   <img id="postImg" alt="">
+  <div id="postWait" class="muted" hidden></div>
   <h3 id="postTitle"></h3>
   <p id="postNote"></p>
   <div class="meta"><button type="button" class="link by" id="postBy"></button><span id="postDate"></span></div>
@@ -155,7 +156,7 @@ if ("serviceWorker" in navigator) addEventListener("load", () => navigator.servi
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getDatabase, ref, push, set, remove, onValue, query, limitToLast, orderByChild, equalTo, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, push, set, get, update, onValue, query, limitToLast, orderByChild, equalTo, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyD2PDm2Jgco7ZZt90uyptESiL9vWpNhXWM",
@@ -165,6 +166,7 @@ const app = initializeApp({
 });
 const POSTS = "apps/favoritethings/posts";
 const USERS = "apps/favoritethings/users";
+const IMAGES = "apps/favoritethings/images";
 const auth = getAuth(app);
 const db = getDatabase(app);
 const $ = id => document.getElementById(id);
@@ -382,13 +384,16 @@ $("post").addEventListener("submit", async e => {
   $("submitPost").disabled = true;
   say("Posting…");
   try {
-    await push(ref(db, POSTS), {
-      uid: user.uid,
-      author: (user.displayName || user.email.split("@")[0]).slice(0, 30),
-      title: $("title").value.trim().slice(0, 80),
-      note: $("note").value.trim().slice(0, 300),
-      image: imageData,
-      ts: serverTimestamp(),
+    const id = push(ref(db, POSTS)).key;
+    await update(ref(db), {
+      [POSTS + "/" + id]: {
+        uid: user.uid,
+        author: (user.displayName || user.email.split("@")[0]).slice(0, 30),
+        title: $("title").value.trim().slice(0, 80),
+        note: $("note").value.trim().slice(0, 300),
+        ts: serverTimestamp(),
+      },
+      [IMAGES + "/" + id]: { uid: user.uid, image: imageData },
     });
     $("post").reset();
     $("preview").hidden = true;
@@ -434,8 +439,17 @@ function renderPosts(feed, list) {
 let shown = null;
 function openPost(p) {
   shown = p;
-  $("postImg").src = p.image;
-  $("postImg").alt = p.title;
+  const img = $("postImg");
+  img.removeAttribute("src");
+  img.alt = p.title;
+  $("postWait").hidden = false;
+  $("postWait").textContent = "Loading picture…";
+  get(ref(db, IMAGES + "/" + p.id)).then(snap => {
+    if (shown !== p) return;
+    const v = snap.val();
+    if (v && v.image) { img.src = v.image; $("postWait").hidden = true; }
+    else $("postWait").textContent = "No picture found.";
+  }).catch(() => { if (shown === p) $("postWait").textContent = "Couldn't load the picture."; });
   $("postTitle").textContent = p.title;
   $("postNote").textContent = p.note || "";
   $("postNote").hidden = !p.note;
@@ -454,7 +468,7 @@ $("postDel").addEventListener("click", e => {
   const d = e.currentTarget;
   if (!shown) return;
   if (!d.dataset.sure) { d.dataset.sure = "1"; d.textContent = "Tap again to delete"; return; }
-  remove(ref(db, POSTS + "/" + shown.id));
+  update(ref(db), { [POSTS + "/" + shown.id]: null, [IMAGES + "/" + shown.id]: null });
   $("postDlg").close();
 });
 
@@ -505,7 +519,7 @@ function openProfile(uid, name) {
   renderProfile();
   stopProfile = onValue(query(ref(db, POSTS), orderByChild("uid"), equalTo(uid)), snap => {
     const list = [];
-    snap.forEach(c => { const v = c.val(); if (v && v.image) list.push({ id: c.key, ...v }); });
+    snap.forEach(c => { const v = c.val(); if (v && v.title) list.push({ id: c.key, ...v }); });
     profilePosts = list.reverse();
     renderProfile();
   }, () => { $("profEmpty").hidden = false; $("profEmpty").textContent = "Can't load this profile right now."; });
@@ -528,7 +542,7 @@ onValue(ref(db, USERS), snap => {
 
 onValue(query(ref(db, POSTS), limitToLast(40)), snap => {
   const list = [];
-  snap.forEach(c => { const v = c.val(); if (v && v.image) list.push({ id: c.key, ...v }); });
+  snap.forEach(c => { const v = c.val(); if (v && v.title) list.push({ id: c.key, ...v }); });
   posts = list.reverse();
   renderFeed();
 }, () => { $("empty").hidden = false; $("empty").textContent = "Can't load posts right now."; });
